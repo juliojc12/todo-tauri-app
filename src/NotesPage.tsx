@@ -97,6 +97,7 @@ export function NotesPage({ onError }: Props) {
           <li key={e.key} data-key={e.key} className={e.key === leaving ? "note note-leaving" : "note"}>
             <NoteItem
               note={e.note}
+              deleting={e.key === leaving}
               onSaved={(note) => onSaved(e.key, note)}
               onDiscardDraft={() => remove(e.key)}
               onDelete={setPendingDelete}

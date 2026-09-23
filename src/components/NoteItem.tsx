@@ -6,6 +6,8 @@ import { TrashIcon } from "./Icons";
 interface Props {
   /** null while this is a new draft that has not reached the database yet. */
   note: Note | null;
+  /** True once its deletion is confirmed (the note is animating out). */
+  deleting: boolean;
   onSaved: (note: Note) => void;
   onDiscardDraft: () => void;
   onDelete: (note: Note) => void;
@@ -27,7 +29,7 @@ function formatStamp(utc: string) {
   return `${d.getDate()} ${month}, ${time}`;
 }
 
-export function NoteItem({ note, onSaved, onDiscardDraft, onDelete, onError }: Props) {
+export function NoteItem({ note, deleting, onSaved, onDiscardDraft, onDelete, onError }: Props) {
   const [text, setText] = useState(note?.body ?? "");
   // Refs, not props: a save must see the id created by the save right before it.
   const idRef = useRef<number | null>(note?.id ?? null);
@@ -45,6 +47,12 @@ export function NoteItem({ note, onSaved, onDiscardDraft, onDelete, onError }: P
     [onSaved],
   );
   const autosave = useAutosave(save, onError);
+
+  // Once the delete is confirmed, unsaved edits of this note have nowhere to go.
+  const { discard } = autosave;
+  useEffect(() => {
+    if (deleting) discard();
+  }, [deleting, discard]);
 
   // A new draft opens with the cursor in it.
   useEffect(() => {
@@ -72,8 +80,11 @@ export function NoteItem({ note, onSaved, onDiscardDraft, onDelete, onError }: P
   };
 
   const leave = () => {
-    if (text.trim()) autosave.flush();
-    else if (idRef.current === null) onDiscardDraft();
+    if (text.trim()) return autosave.flush();
+    // The window lost focus (e.g. alt-tab to copy something): keep the blank draft or the
+    // cleared text for when the user comes back. Only leaving the note inside the app counts.
+    if (!document.hasFocus()) return;
+    if (idRef.current === null) onDiscardDraft();
     else setText(savedBody.current);
   };
 
@@ -101,10 +112,7 @@ export function NoteItem({ note, onSaved, onDiscardDraft, onDelete, onError }: P
               type="button"
               className="act act-danger"
               aria-label="Excluir nota"
-              onClick={() => {
-                autosave.discard();
-                onDelete(note);
-              }}
+              onClick={() => onDelete(note)}
             >
               <TrashIcon />
             </button>
