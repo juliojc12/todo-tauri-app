@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Source for `npm run tauri icon`: dark notebook page, coral margin, marker-yellow check. -->
+  <defs>
+    <clipPath id="page">
+      <rect x="64" y="64" width="896" height="896" rx="200" />
+    </clipPath>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="#131a26" />
+  <g clip-path="url(#page)">
+    <g stroke="#2a3448" stroke-width="14">
+      <line x1="64" y1="330" x2="960" y2="330" />
+      <line x1="64" y1="500" x2="960" y2="500" />
+      <line x1="64" y1="670" x2="960" y2="670" />
+      <line x1="64" y1="840" x2="960" y2="840" />
+    </g>
+    <line x1="270" y1="64" x2="270" y2="960" stroke="#d9695f" stroke-width="16" stroke-opacity="0.8" />
+    <!-- marker swash under the check -->
+    <path d="M350 760 C 470 735, 620 780, 800 748" fill="none" stroke="#f4c95d" stroke-opacity="0.35"
+      stroke-width="54" stroke-linecap="round" />
+    <path d="M360 520 L 490 650 L 760 330" fill="none" stroke="#f4c95d" stroke-width="96"
+      stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
