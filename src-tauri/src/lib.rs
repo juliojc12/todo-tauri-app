@@ -1,6 +1,6 @@
 mod db;
 
-use db::Task;
+use db::{Note, Task};
 use rusqlite::Connection;
 use std::sync::Mutex;
 use tauri::{Manager, State};
@@ -64,6 +64,26 @@ fn set_subtask_completed(state: State<AppState>, id: i64, completed: bool) -> Cm
     with_conn(&state, |c| db::set_subtask_completed(c, id, completed))
 }
 
+#[tauri::command]
+fn list_notes(state: State<AppState>) -> CmdResult<Vec<Note>> {
+    with_conn(&state, |c| db::list_notes(c))
+}
+
+#[tauri::command]
+fn create_note(state: State<AppState>, body: String) -> CmdResult<Note> {
+    with_conn(&state, |c| db::create_note(c, &body))
+}
+
+#[tauri::command]
+fn update_note(state: State<AppState>, id: i64, body: String) -> CmdResult<Note> {
+    with_conn(&state, |c| db::update_note(c, id, &body))
+}
+
+#[tauri::command]
+fn delete_note(state: State<AppState>, id: i64) -> CmdResult<()> {
+    with_conn(&state, |c| db::delete_note(c, id))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -92,7 +112,11 @@ pub fn run() {
             reorder_tasks,
             create_subtask,
             update_subtask,
-            set_subtask_completed
+            set_subtask_completed,
+            list_notes,
+            create_note,
+            update_note,
+            delete_note
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

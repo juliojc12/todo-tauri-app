@@ -18,10 +18,23 @@ pub struct Task {
     pub subtasks: Vec<Subtask>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Note {
+    pub id: i64,
+    pub body: String,
+    /// UTC, "YYYY-MM-DD HH:MM:SS.SSS".
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub const NOTE_MAX_CHARS: usize = 10_000;
+
 #[derive(Debug)]
 pub enum DbError {
     Sqlite(rusqlite::Error),
     EmptyTitle,
+    EmptyBody,
+    BodyTooLong,
     NotFound,
 }
 
@@ -30,6 +43,8 @@ impl std::fmt::Display for DbError {
         match self {
             DbError::Sqlite(e) => write!(f, "Erro no banco de dados: {e}"),
             DbError::EmptyTitle => write!(f, "O título não pode ser vazio."),
+            DbError::EmptyBody => write!(f, "A nota não pode ficar vazia."),
+            DbError::BodyTooLong => write!(f, "A nota passou do limite de 10.000 caracteres."),
             DbError::NotFound => write!(f, "Registro não encontrado."),
         }
     }
@@ -63,6 +78,13 @@ CREATE TABLE IF NOT EXISTS subtasks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id);
+
+CREATE TABLE IF NOT EXISTS notes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    body       TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
+    updated_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))
+);
 ";
 
 fn clean_title(title: &str) -> Result<String> {
@@ -228,6 +250,68 @@ pub fn set_subtask_completed(conn: &Connection, id: i64, completed: bool) -> Res
     )?)
 }
 
+/// Blank bodies are refused; the text itself is stored exactly as typed.
+fn check_body(body: &str) -> Result<()> {
+    if body.trim().is_empty() {
+        Err(DbError::EmptyBody)
+    } else if body.chars().count() > NOTE_MAX_CHARS {
+        Err(DbError::BodyTooLong)
+    } else {
+        Ok(())
+    }
+}
+
+fn note_from_row(r: &rusqlite::Row) -> rusqlite::Result<Note> {
+    Ok(Note {
+        id: r.get(0)?,
+        body: r.get(1)?,
+        created_at: r.get(2)?,
+        updated_at: r.get(3)?,
+    })
+}
+
+fn get_note(conn: &Connection, id: i64) -> Result<Note> {
+    conn.query_row(
+        "SELECT id, body, created_at, updated_at FROM notes WHERE id = ?1",
+        [id],
+        note_from_row,
+    )
+    .optional()?
+    .ok_or(DbError::NotFound)
+}
+
+/// Newest first.
+pub fn list_notes(conn: &Connection) -> Result<Vec<Note>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, body, created_at, updated_at FROM notes
+         ORDER BY created_at DESC, id DESC",
+    )?;
+    let notes = stmt
+        .query_map([], note_from_row)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(notes)
+}
+
+pub fn create_note(conn: &Connection, body: &str) -> Result<Note> {
+    check_body(body)?;
+    conn.execute("INSERT INTO notes (body) VALUES (?1)", [body])?;
+    get_note(conn, conn.last_insert_rowid())
+}
+
+pub fn update_note(conn: &Connection, id: i64, body: &str) -> Result<Note> {
+    check_body(body)?;
+    ensure_changed(conn.execute(
+        "UPDATE notes SET body = ?1, updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now')
+         WHERE id = ?2",
+        params![body, id],
+    )?)?;
+    get_note(conn, id)
+}
+
+pub fn delete_note(conn: &Connection, id: i64) -> Result<()> {
+    ensure_changed(conn.execute("DELETE FROM notes WHERE id = ?1", [id])?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -325,5 +409,71 @@ mod tests {
         assert!(matches!(delete_task(&c, 99), Err(DbError::NotFound)));
         assert!(matches!(create_subtask(&c, 99, "x"), Err(DbError::NotFound)));
         assert!(matches!(set_subtask_completed(&c, 99, true), Err(DbError::NotFound)));
+    }
+
+    fn bodies(conn: &Connection) -> Vec<String> {
+        list_notes(conn).unwrap().into_iter().map(|n| n.body).collect()
+    }
+
+    #[test]
+    fn creates_and_lists_notes_newest_first() {
+        let c = mem();
+        create_note(&c, "primeira").unwrap();
+        create_note(&c, "segunda").unwrap();
+        assert_eq!(bodies(&c), vec!["segunda", "primeira"]);
+    }
+
+    #[test]
+    fn note_body_is_stored_exactly_as_typed() {
+        let c = mem();
+        let body = "linha 1\nlinha 2\n\n  recuada\n";
+        let note = create_note(&c, body).unwrap();
+        assert_eq!(note.body, body);
+        assert_eq!(bodies(&c), vec![body]);
+    }
+
+    #[test]
+    fn rejects_blank_and_too_long_note_bodies() {
+        let c = mem();
+        assert!(matches!(create_note(&c, ""), Err(DbError::EmptyBody)));
+        assert!(matches!(create_note(&c, "  \n\n\t "), Err(DbError::EmptyBody)));
+        assert!(matches!(create_note(&c, &"x".repeat(10_001)), Err(DbError::BodyTooLong)));
+        // The limit counts characters, not bytes.
+        create_note(&c, &"é".repeat(10_000)).unwrap();
+        assert!(matches!(create_note(&c, &"é".repeat(10_001)), Err(DbError::BodyTooLong)));
+
+        let id = create_note(&c, "ok").unwrap().id;
+        assert!(matches!(update_note(&c, id, " \n "), Err(DbError::EmptyBody)));
+        assert!(matches!(update_note(&c, id, &"x".repeat(10_001)), Err(DbError::BodyTooLong)));
+        assert_eq!(bodies(&c)[0], "ok");
+    }
+
+    #[test]
+    fn update_note_changes_body_and_updated_at_only() {
+        let c = mem();
+        let created = create_note(&c, "antes").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        let updated = update_note(&c, created.id, "depois").unwrap();
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.body, "depois");
+        assert_eq!(updated.created_at, created.created_at);
+        assert!(updated.updated_at > created.updated_at);
+        assert_eq!(bodies(&c), vec!["depois"]);
+    }
+
+    #[test]
+    fn delete_note_removes_it() {
+        let c = mem();
+        let a = create_note(&c, "a").unwrap().id;
+        create_note(&c, "b").unwrap();
+        delete_note(&c, a).unwrap();
+        assert_eq!(bodies(&c), vec!["b"]);
+    }
+
+    #[test]
+    fn missing_note_ids_return_not_found() {
+        let c = mem();
+        assert!(matches!(update_note(&c, 99, "x"), Err(DbError::NotFound)));
+        assert!(matches!(delete_note(&c, 99), Err(DbError::NotFound)));
     }
 }
