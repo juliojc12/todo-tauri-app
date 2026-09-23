@@ -47,7 +47,7 @@ src/hooks/useFlip.ts         # animação FLIP (entrada, reordenação, saída)
 src/components/              # DayHeader, NotesHeader, TaskItem, Checkbox, InlineEdit, ConfirmDialog, Icons
 ```
 
-O banco fica em `%APPDATA%\com.jcsilva.todoapp\todo.db`. Para usar outro arquivo (por exemplo, um banco descartável para testes), defina `TODO_APP_DB`:
+O banco fica em `%APPDATA%\com.todoapp\todo.db`. Para usar outro arquivo (por exemplo, um banco descartável para testes), defina `TODO_APP_DB`:
 
 ```powershell
 $env:TODO_APP_DB = "C:\temp\teste.db"; npm run tauri dev
