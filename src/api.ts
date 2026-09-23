@@ -14,6 +14,16 @@ export interface Task {
   subtasks: Subtask[];
 }
 
+export interface Note {
+  id: number;
+  body: string;
+  /** UTC, "YYYY-MM-DD HH:MM:SS.SSS" */
+  created_at: string;
+  updated_at: string;
+}
+
+export const NOTE_MAX_CHARS = 10_000;
+
 export const api = {
   listTasks: () => invoke<Task[]>("list_tasks"),
   createTask: (title: string) => invoke<number>("create_task", { title }),
@@ -27,4 +37,8 @@ export const api = {
   updateSubtask: (id: number, title: string) => invoke<void>("update_subtask", { id, title }),
   setSubtaskCompleted: (id: number, completed: boolean) =>
     invoke<void>("set_subtask_completed", { id, completed }),
+  listNotes: () => invoke<Note[]>("list_notes"),
+  createNote: (body: string) => invoke<Note>("create_note", { body }),
+  updateNote: (id: number, body: string) => invoke<Note>("update_note", { id, body }),
+  deleteNote: (id: number) => invoke<void>("delete_note", { id }),
 };

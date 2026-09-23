@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { TodoPage } from "./TodoPage";
+import { NotesPage } from "./NotesPage";
 import { CloseIcon } from "./components/Icons";
 import "./App.css";
 
@@ -14,7 +15,9 @@ export default function App() {
           <TodoPage setError={setError} />
         </main>
         <div className="spine" aria-hidden="true" />
-        <section className="sheet sheet-right" aria-label="Notas" />
+        <section className="sheet sheet-right" aria-label="Notas">
+          <NotesPage onError={setError} />
+        </section>
       </div>
 
       {error && (

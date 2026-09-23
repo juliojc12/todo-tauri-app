@@ -703,6 +703,128 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Notes ---------- */
+
+/* "Nova nota" reuses the compose line look as a button. */
+.compose-button {
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  color: var(--text-faint);
+  transition: color 0.2s;
+}
+
+.compose-button:hover,
+.compose-button:focus-visible {
+  color: var(--text);
+  outline: none; /* the marker underline and the turning + show focus */
+}
+
+.compose-label {
+  padding: 16px 0;
+  font-size: 1.08rem;
+}
+
+.notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.note {
+  --line: 28px;
+  padding: 12px 0 10px var(--gutter);
+  border-bottom: 1px solid var(--rule);
+  animation: note-in 0.35s var(--ease);
+}
+
+.note-leaving {
+  animation: note-out 0.22s ease-in forwards;
+}
+
+.note-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  font-size: 0.82rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.note:hover .note-actions,
+.note:focus-within .note-actions {
+  opacity: 1;
+}
+
+.note-save {
+  padding: 4px 10px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--marker);
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+
+.note-save:hover {
+  background: rgba(244, 201, 93, 0.1);
+}
+
+/* Text sits on the ruled lines: line-height matches the rule spacing. */
+.note-text {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--line) * 2);
+  margin: 0;
+  padding: 0;
+  resize: none;
+  overflow: hidden;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  line-height: var(--line);
+  caret-color: var(--marker);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--line) - 1px),
+    var(--rule) calc(var(--line) - 1px),
+    var(--rule) var(--line)
+  );
+  background-attachment: local;
+}
+
+.note-text::placeholder {
+  color: var(--text-faint);
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes note-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
 /* ---------- Toast ---------- */
 
 .toast {
