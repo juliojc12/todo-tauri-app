@@ -16,6 +16,8 @@
   --text-faint: #6b7385;
   --marker: #f4c95d;
   --danger: #e5645a;
+  --desk: #0a0e15; /* the table under the notebook */
+  --spine: #0d121b;
 
   --gutter: 44px; /* width left of the margin line: grip / compose icon live here */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -38,11 +40,12 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(1200px 500px at 50% -200px, rgba(244, 201, 93, 0.05), transparent 70%),
-    var(--ink);
+    var(--desk);
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
   color: inherit;
 }
@@ -70,29 +73,78 @@ button {
   border: 3px solid var(--ink);
 }
 
-/* ---------- Page & margin line ---------- */
+/* ---------- Desk & open notebook ---------- */
 
-.page {
-  min-height: 100vh;
+.desk {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 22px 28px 34px;
 }
 
+.notebook {
+  flex: 1;
+  max-width: 1320px;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px #1f2839, /* page edge */
+    0 5px 0 -1px #151c28, /* stacked sheets underneath */
+    0 9px 0 -2px #10161f,
+    0 36px 70px -24px rgba(0, 0, 0, 0.85);
+}
+
+/* Each page scrolls on its own; backgrounds stay put while the content moves. */
 .sheet {
+  --margin-x: calc(20px + var(--gutter) - 10px);
+  --margin-line: linear-gradient(
+    to right,
+    transparent var(--margin-x),
+    rgba(217, 105, 95, 0.45) var(--margin-x),
+    rgba(217, 105, 95, 0.45) calc(var(--margin-x) + 1px),
+    transparent calc(var(--margin-x) + 1px)
+  );
   position: relative;
-  min-height: 100vh;
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 44px 28px 96px 20px;
+  min-width: 0;
+  overflow-y: auto;
+  container-type: inline-size;
+  padding: 44px 28px 72px 20px;
 }
 
-.sheet::before {
+/* Paper curving into the spine */
+.sheet-left {
+  border-radius: 14px 0 0 14px;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.34), transparent 60px), var(--margin-line), var(--ink);
+}
+
+.sheet-right {
+  border-radius: 0 14px 14px 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.34), transparent 60px), var(--margin-line), var(--ink);
+}
+
+.spine {
+  position: relative;
+  background: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.5),
+      rgba(0, 0, 0, 0.12) 40%,
+      rgba(0, 0, 0, 0.12) 60%,
+      rgba(0, 0, 0, 0.5)
+    ),
+    var(--spine);
+}
+
+/* Binding stitches */
+.spine::after {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(20px + var(--gutter) - 10px);
+  top: 26px;
+  bottom: 26px;
+  left: 50%;
   width: 1px;
-  background: linear-gradient(to bottom, transparent, rgba(217, 105, 95, 0.45) 120px, rgba(217, 105, 95, 0.45));
-  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(235, 230, 217, 0.16) 0 9px, transparent 9px 18px);
 }
 
 /* ---------- Header: the date + marker progress ---------- */
@@ -105,7 +157,7 @@ button {
 .day-title {
   display: inline-block;
   margin: 0;
-  font-size: clamp(2.1rem, 5.4vw, 2.9rem);
+  font-size: clamp(1.9rem, 7.5cqi, 2.9rem);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.025em;
@@ -759,24 +811,6 @@ button {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.96);
-  }
-}
-
-/* ---------- Small windows ---------- */
-
-@media (max-width: 560px) {
-  :root {
-    --gutter: 36px;
-  }
-  .sheet {
-    padding: 28px 16px 72px 12px;
-  }
-  .sheet::before {
-    left: calc(12px + var(--gutter) - 10px);
-  }
-  .row-actions,
-  .grip {
-    opacity: 1;
   }
 }
 

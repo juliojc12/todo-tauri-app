@@ -4,11 +4,12 @@ interface Props {
   title: string;
   message: string;
   confirmLabel: string;
+  cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Props) {
+export function ConfirmDialog({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel }: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCance
         <p>{message}</p>
         <div className="dialog-actions">
           <button ref={cancelRef} className="btn" onClick={onCancel}>
-            Manter tarefa
+            {cancelLabel}
           </button>
           <button className="btn btn-danger" onClick={onConfirm}>
             {confirmLabel}

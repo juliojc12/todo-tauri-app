@@ -12,7 +12,7 @@ function summary(pending: number, done: number) {
   return done > 0 ? `${p}, ${done} ${done === 1 ? "feita" : "feitas"}.` : `${p}.`;
 }
 
-const MARKER_PATH = "M3 8 C 60 4, 120 11, 180 7 S 270 5, 297 8";
+export const MARKER_PATH = "M3 8 C 60 4, 120 11, 180 7 S 270 5, 297 8";
 
 /** Today's date as the page title, underlined by a marker stroke that fills with progress. */
 export function DayHeader({ pending, done }: Props) {
